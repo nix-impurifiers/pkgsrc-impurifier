@@ -4,6 +4,7 @@
   impurifier,
   coreSrc,
   tools,
+  bundled ? false,
 }:
 let
   package = impurifier.buildPackage {
@@ -60,7 +61,12 @@ let
   nixProvider = provider "nix" (
     pkgs.runCommand "nix-provider-fixture" { } ''
       mkdir -p $out/usr/pkg/bin
-      ln -s ${pkgs.nix}/bin/nix-store $out/usr/pkg/bin/nix-store
+      ln -s ${
+        if bundled then
+          pkgs.writeShellScript "incompatible-nix-store" "echo incompatible; exit 1"
+        else
+          "${pkgs.nix}/bin/nix-store"
+      } $out/usr/pkg/bin/nix-store
     ''
   );
   pythonProvider = provider "python314" (

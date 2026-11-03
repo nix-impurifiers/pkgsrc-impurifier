@@ -44,3 +44,25 @@ The package root is `/`; alternate `PKG_DESTDIR` and prefix relocation are
 rejected by installation hooks. Package dependencies and native reverse
 relations remain pkgsrc's responsibility. Original code is MIT licensed; native
 source notices are described in [THIRD_PARTY.md](THIRD_PARTY.md).
+
+## Native payloads and bundled clients
+
+`makeNativePackage { name; version; payload; dependencies?; ... }` packages a
+producer-prepared filesystem tree with native pkg_create. It adds no engine
+hooks or Nix dependency. The producer supplies a runnable target layout; no
+relocation is performed. Linux x86_64 platform metadata remains the current SDK
+contract. The target-root VM executes a static payload without `/nix`, upgrades
+and removes it through native tools.
+
+The pinned native SDK fixes pkg_add's `-P` upgrade subprocess to pass the original
+database path to pkg_delete, which applies the destination root itself. Without
+that one-line correction the root is applied twice. This fixture correction
+does not alter generated package files; other native client versions need their
+own compatibility check for destination-root upgrades.
+
+`makeRuntimePackage` optionally accepts `bundledNixStore` and
+`bundledNixNotices`. A static ELF client and upstream notices omit the default
+Nix dependency; Python remains required. Compatible external clients take
+precedence. Explicit `IMPURIFIER_NIX_STORE` disables fallback, and mutations are
+never retried through another client. A separate bundled-client VM repeats
+the original lifecycle suite with an incompatible external candidate.

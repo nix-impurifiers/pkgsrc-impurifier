@@ -26,6 +26,11 @@ let
       cp -r ${source}/security/netpgpverify/files netpgp
       cp -r ${source}/pkgtools/pkg_install/files tools
       chmod -R u+w nbcompat fetch netpgp tools
+      # pkg_add's -P upgrade subprocess must receive the unprefixed DB path;
+      # pkg_delete applies Destdir itself. Otherwise the root is applied twice.
+      substituteInPlace tools/add/perform.c --replace-fail \
+        'fexec_skipempty(BINDIR "/pkg_delete", "-K", pkgdb_get_dir(),' \
+        'fexec_skipempty(BINDIR "/pkg_delete", "-K", config_pkg_dbdir,'
       root=$PWD
       (cd nbcompat; bash ./configure --enable-bsd-getopt --enable-db; bmake -j$NIX_BUILD_CORES)
       export CPPFLAGS="-I$root/nbcompat -I$root/fetch -I$root $CPPFLAGS"

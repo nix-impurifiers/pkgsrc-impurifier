@@ -164,7 +164,9 @@ let
     '';
   makeRuntimePackage =
     {
-      nixDependency ? "nix>=0",
+      bundledNixStore ? null,
+      bundledNixNotices ? [ ],
+      nixDependency ? (if bundledNixStore == null then "nix>=0" else null),
       pythonDependency ? "python314>=0",
       pythonExecutable ? "/usr/pkg/bin/python3.14",
       nativeBinPath ? "/usr/pkg/sbin:/usr/pkg/bin",
@@ -178,14 +180,11 @@ let
     buildPackage {
       name = "pkgsrc-impurifier";
       inherit version osVersion;
-      dependencies = [
-        nixDependency
-        pythonDependency
-      ];
+      dependencies = lib.optional (nixDependency != null) nixDependency ++ [ pythonDependency ];
       installScript = hooks { };
       removeScript = hooks { };
       payload = pkgs.runCommand "pkgsrc-runtime" { } ''
-        cp -r ${core.makeRuntimeTree { }} $out
+        cp -r ${core.makeRuntimeTree { inherit bundledNixStore bundledNixNotices; }} $out
         chmod -R u+w $out
         install -Dm755 ${../src/activate.py} $out/usr/sbin/pkgsrc-impurifier-activate
         install -Dm755 ${../src/adapter.py} $out/usr/sbin/pkgsrc-impurifier
@@ -251,6 +250,7 @@ in
     makeRuntimePackage
     makePackageArtifact
     ;
+  makeNativePackage = args: buildPackage args;
   runtimePackage = makeRuntimePackage { };
   makeNetPackage = args: makePackageArtifact (args // { offline = false; });
   makeOfflinePackage = args: makePackageArtifact (args // { offline = true; });
